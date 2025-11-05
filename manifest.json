@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Тренировка меткости - Aim Trainer",
+  "version": "1.0.1",
+  "description": "Улучшите свою реакцию и точность! Гибко настраиваемый аим-тренер, который запускается в один клик прямо в вашем браузере.",
+  "default_locale": "ru",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "Начать тренировку меткости"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

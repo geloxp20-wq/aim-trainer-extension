@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Тренировка Меткости</title>
+	<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%23ff0055' stroke-width='10'/%3E%3Cpath d='M50 15 V85 M15 50 H85' stroke='%23ff0055' stroke-width='10'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff0055;
+            --background-color: #10121b;
+            --surface-color: #1a1e2a;
+            --text-color: #e0e0e0;
+            --text-muted-color: #888;
+            --border-color: #33394a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            cursor: crosshair;
+            user-select: none;
+            -webkit-user-select: none;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-color 0.3s;
+        }
+        .screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+        .screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        #loading-screen { justify-content: center; z-index: 9999; background-color: var(--background-color); }
+        .loader {
+            width: 50px; height: 50px; border: 5px solid var(--border-color);
+            border-top-color: var(--primary-color); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #menu-screen {
+            gap: 2rem; padding: 2rem; overflow-y: auto; justify-content: flex-start;
+            scrollbar-width: thin; scrollbar-color: var(--border-color) transparent;
+        }
+        #menu-screen::-webkit-scrollbar { width: 10px; }
+        #menu-screen::-webkit-scrollbar-track { background: transparent; }
+        #menu-screen::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 20px; border: 3px solid var(--surface-color); }
+        #menu-screen .title {
+            font-size: 3rem; font-weight: 900; text-transform: uppercase; color: var(--primary-color);
+            letter-spacing: 4px; text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+            text-align: center;
+        }
+        .settings-container {
+            background-color: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 2rem; width: 100%; max-width: 800px; display: grid;
+            grid-template-columns: 1fr 1fr; gap: 1.5rem 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 2rem;
+        }
+        .setting-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .setting-group.full-width { grid-column: 1 / -1; }
+        .setting-group.inline-group { flex-direction: row; flex-wrap: wrap; gap: 1.5rem; align-items: flex-end; }
+        .setting-group .sub-group { flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+        .setting-group.bottom-controls { flex-direction: row; justify-content: space-between; align-items: center; gap: 1rem; }
+        .setting-group .icon-buttons { display: flex; gap: 0.5rem; }
+        .setting-group label { font-weight: 700; font-size: 0.9rem; color: var(--text-muted-color); text-transform: uppercase; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-group button, .btn {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 700;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s; flex-grow: 1;
+        }
+        .btn-group button:hover { background-color: var(--border-color); }
+        .btn-group button.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .slider-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .slider-label { display: flex; justify-content: space-between; align-items: center; }
+        .slider-label span { color: var(--primary-color); font-weight: 700; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: var(--border-color); border-radius: 5px; outline: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--primary-color); border-radius: 50%; cursor: pointer; }
+        .color-picker { display: flex; gap: 0.75rem; align-items: center; }
+        .color-option { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; transition: transform 0.2s; border: 3px solid transparent; position: relative; overflow: hidden; }
+        .color-option.active { border-color: white; transform: scale(1.1); }
+        #custom-color-picker-wrapper { background-color: #3366ff; }
+        #custom-color-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .hidden-setting { display: none !important; }
+        .text-input { background: var(--border-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 0.75rem; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 1rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .text-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(255, 0, 85, 0.2); }
+        input[type="color"] { -webkit-appearance: none; appearance: none; width: 44px; height: 44px; background-color: transparent; border: none; cursor: pointer; padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 2px solid var(--border-color); }
+        #bg-image-label { background: var(--border-color); color: var(--text-color); padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; text-align: center; transition: background-color 0.2s; }
+        #bg-image-input { display: none; }
+        .icon-btn { background-color: transparent; border: 1px solid var(--border-color); width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s; }
+        .icon-btn:hover { background-color: var(--border-color); }
+        .icon-btn svg { fill: var(--text-color); width: 24px; height: 24px; }
+        #sound-off-icon { display: none; }
+        #mute-btn.muted #sound-on-icon { display: none; }
+        #mute-btn.muted #sound-off-icon { display: block; }
+        #start-btn { background: var(--primary-color); color: white; border: none; font-size: 1.2rem; padding: 1rem; border-radius: 8px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background-color 0.2s, transform 0.2s; box-shadow: 0 0 15px rgba(255, 0, 85, 0.5); flex-grow: 1; max-width: 400px; }
+        .divider { grid-column: 1 / -1; border: 0; height: 1px; background-color: var(--border-color); }
+        #points-range-container { align-items: center; }
+        .range-dash { color: var(--text-muted-color); font-weight: bold; padding: 0 0.5rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .modal-overlay:not(.hidden) { opacity: 1; visibility: visible; }
+        .modal-content { background-color: var(--surface-color); padding: 2rem; border-radius: 16px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; transform: scale(0.9); transition: transform 0.3s; }
+        .modal-overlay:not(.hidden) .modal-content { transform: scale(1); }
+        .modal-content h3 { color: var(--primary-color); margin: 1.5rem 0 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .modal-content ul { list-style: none; padding-left: 0; }
+        .modal-content li { margin-bottom: 0.5rem; line-height: 1.6; }
+        #game-screen { background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 40px 40px; }
+        .hud { position: absolute; top: 20px; right: 30px; display: flex; gap: 30px; font-size: 1.5rem; text-align: right; }
+        .hud-item { display: flex; flex-direction: column; align-items: flex-end; }
+        .hud-label { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted-color); }
+        .hud-value { font-size: 2.2rem; font-weight: 900; color: var(--primary-color); }
+        .target { position: absolute; border-radius: 50%; transition: transform 0.1s ease-out; z-index: 10; display: flex; justify-content: center; align-items: center; }
+        .target.shrinking { animation: shrink 0.5s ease-in forwards; }
+        @keyframes shrink { to { transform: scale(0); opacity: 0; } }
+        .target.hit { animation: hit 0.2s ease-out forwards; }
+        @keyframes hit { to { transform: scale(1.5); opacity: 0; } }
+        .floating-text { position: absolute; font-size: 1.5rem; font-weight: bold; pointer-events: none; animation: float-up 1s ease-out forwards; z-index: 100; }
+        @keyframes float-up { from { opacity: 1; } to { transform: translateY(-50px); opacity: 0; } }
+        .streak-display { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 2rem; font-weight: bold; color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color); opacity: 0; transition: opacity 0.2s; }
+        .streak-display.visible { opacity: 1; }
+        #results-screen { justify-content: center; padding: 1rem; }
+        #results-screen .content { background-color: var(--surface-color); border-radius: 16px; padding: 3rem; text-align: center; display: flex; flex-direction: column; gap: 2rem; width: 100%; max-width: 800px; }
+        #results-screen h2 { font-size: 2.5rem; font-weight: 900; text-transform: uppercase; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2rem; }
+        .stat-item { display: flex; flex-direction: column; gap: 0.5rem; }
+        .stat-label { font-size: 1rem; text-transform: uppercase; color: var(--text-muted-color); }
+        .stat-value { font-size: 3.5rem; font-weight: 900; color: var(--primary-color); }
+        .stat-subtext { color: var(--text-muted-color); }
+        .results-buttons { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+        @media (max-width: 850px) { .settings-container { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) {
+             #menu-screen .title { font-size: 2rem; } .hud { flex-direction: column; gap: 15px; top: 15px; right: 15px; }
+            .hud-value { font-size: 1.8rem; } #results-screen .content { padding: 2rem; } .stat-value { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen" class="screen">
+        <div class="loader"></div>
+    </div>
+    <div id="menu-screen" class="screen hidden">
+        <h1 class="title">Тренировка меткости</h1>
+        <div class="settings-container">
+            <div class="setting-group full-width">
+                <label>Режим игры</label>
+                <div class="btn-group" id="game-mode-btns">
+                    <button data-mode="classic" class="active">Классический</button>
+                    <button data-mode="timed">На время (60с)</button>
+                    <button data-mode="endless">Бесконечный</button>
+                    <button data-mode="accuracy">Точность (30)</button>
+                    <button data-mode="score_rush">Набор очков</button>
+                </div>
+            </div>
+            <div class="setting-group full-width hidden-setting" id="score-goal-setting">
+                <label for="score-goal-input">Очки для победы</label>
+                <input type="number" id="score-goal-input" class="text-input" value="5000" min="500" step="100" style="width: 180px;">
+            </div>
+            <hr class="divider">
+            <div class="setting-group">
+                <label>Сложность</label>
+                <div class="btn-group" id="difficulty-btns">
+                    <button data-difficulty="easy">Легко</button>
+                    <button data-difficulty="medium" class="active">Средне</button>
+                    <button data-difficulty="hard">Сложно</button>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>Цвет целей</label>
+                <div class="color-picker" id="color-picker">
+                    <div class="color-option active" style="background-color: #ff0055;" data-color="#ff0055"></div>
+                    <div class="color-option" style="background-color: #00aaff;" data-color="#00aaff"></div>
+                    <div class="color-option" style="background-color: #ffaa00;" data-color="#ffaa00"></div>
+                    <div class="color-option" style="background-color: #00ff55;" data-color="#00ff55"></div>
+                    <label class="color-option" id="custom-color-picker-wrapper"><input type="color" id="custom-color-input" value="#3366ff"></label>
+                </div>
+            </div>
+            <div class="setting-group full-width inline-group">
+                <div class="sub-group">
+                    <label for="target-text-input">Текст на цели</label>
+                    <input type="text" id="target-text-input" class="text-input" placeholder="Например: OK">
+                </div>
+                <div class="sub-group">
+                    <label for="target-text-color-input">Цвет текста</label>
+                    <input type="color" id="target-text-color-input" value="#FFFFFF">
+                </div>
+            </div>
+            <hr class="divider">
+            <div class="setting-group full-width">
+                <label>Очки за попадание</label>
+                <div class="btn-group" id="points-mode-btns">
+                    <button data-mode="fixed" class="active">Фиксировано</button>
+                    <button data-mode="range">Диапазон</button>
+                    <button data-mode="random">Случайно</button>
+                </div>
+                <div id="points-inputs-container" class="inline-group" style="margin-top: 0.5rem;">
+                    <div id="points-fixed-container" class="sub-group"><input type="number" id="points-fixed-input" class="text-input" value="1" min="1"></div>
+                    <div id="points-range-container" class="sub-group hidden-setting" style="flex-direction: row; gap: 0;">
+                        <input type="number" id="points-range-min-input" class="text-input" value="50" min="1" style="width: 80px;">
+                        <span class="range-dash">-</span>
+                        <input type="number" id="points-range-max-input" class="text-input" value="150" min="1" style="width: 80px;">
+                    </div>
+                </div>
+            </div>
+            <hr class="divider">
+            <div class="setting-group full-width inline-group">
+                <div class="sub-group">
+                    <label for="bg-color-input">Цвет фона</label>
+                    <input type="color" id="bg-color-input" value="#10121b">
+                </div>
+                <div class="sub-group">
+                     <label for="bg-image-input">Изображение фона</label>
+                     <label for="bg-image-input" id="bg-image-label">Выберите файл</label>
+                     <input type="file" id="bg-image-input" accept="image/*">
+                </div>
+                <div class="sub-group"><button id="remove-bg-image-btn" class="btn">Удалить</button></div>
+            </div>
+            <hr class="divider">
+            <div class="setting-group slider-group">
+                <div class="slider-label"><label>Размер целей</label><span id="target-size-value">50px</span></div>
+                <input type="range" id="target-size-slider" min="20" max="150" value="50">
+            </div>
+            <div class="setting-group slider-group">
+                <div class="slider-label"><label>Количество целей</label><span id="target-count-value">3</span></div>
+                <input type="range" id="target-count-slider" min="1" max="10" value="3">
+            </div>
+            <div class="setting-group slider-group">
+                <div class="slider-label"><label>Скорость появления</label><span id="spawn-rate-value">1000ms</span></div>
+                <input type="range" id="spawn-rate-slider" min="200" max="3000" value="1000" step="100">
+            </div>
+            <div class="setting-group slider-group">
+                <div class="slider-label"><label>Время жизни</label><span id="lifespan-value">3000ms</span></div>
+                <input type="range" id="lifespan-slider" min="500" max="10000" value="3000" step="100">
+            </div>
+            <div class="setting-group full-width">
+                <label>Движение целей</label>
+                <div class="btn-group" id="movement-btns">
+                    <button data-movement="static" class="active">Статичные</button>
+                    <button data-movement="slow">Медленные</button>
+                    <button data-movement="medium">Средние</button>
+                    <button data-movement="fast">Быстрые</button>
+                </div>
+            </div>
+            <div class="setting-group full-width bottom-controls">
+                <button id="start-btn" class="btn">Начать</button>
+                <div class="icon-buttons">
+                    <button id="mute-btn" class="icon-btn" title="Включить/выключить звук">
+                        <svg id="sound-on-icon" viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" /></svg>
+                        <svg id="sound-off-icon" viewBox="0 0 24 24"><path d="M12,4L7,9H3V15H7L12,20V4M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M4.27,3L3,4.27L7.73,9H3V15H7.73L12,19.27V13.54L17.73,19.27L19,18L4.27,3Z" /></svg>
+                    </button>
+                    <button id="info-btn" class="icon-btn" title="Информация об игре">
+                        <svg viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6C9.79,6 8,7.79 8,10H10C10,8.9 10.9,8 12,8C13.1,8 14,8.9 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10C16,7.79 14.21,6 12,6Z" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="game-screen" class="screen hidden">
+        <div class="hud">
+            <div class="hud-item"><span class="hud-label" id="time-label">Время</span><span id="time-display" class="hud-value">--</span></div>
+            <div class="hud-item"><span class="hud-label">Счёт</span><span id="score-display" class="hud-value">0</span></div>
+            <div class="hud-item"><span class="hud-label">Точность</span><span id="accuracy-display" class="hud-value">100%</span></div>
+        </div>
+        <div class="streak-display" id="streak-display"></div>
+    </div>
+    <div id="results-screen" class="screen hidden">
+        <div class="content">
+            <h2>Результат</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Общие очки</span>
+                    <span id="final-score" class="stat-value">0</span>
+                    <span id="high-score-sub" class="stat-subtext"></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Эффективность</span>
+                    <span id="final-effectiveness" class="stat-value">0%</span>
+                    <span id="final-effectiveness-sub" class="stat-subtext">0 из 0 мишеней</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Точность</span>
+                    <span id="final-accuracy" class="stat-value">100%</span>
+                    <span id="final-accuracy-sub" class="stat-subtext">0 из 0 кликов</span>
+                </div>
+            </div>
+            <div class="results-buttons">
+                <button id="retry-btn" class="btn">Попробовать ещё</button>
+            </div>
+        </div>
+    </div>
+    <div id="info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Информация об игре</h3>
+            <ul>
+                <li><strong>Режимы игры:</strong> Выберите один из пяти режимов, каждый со своей целью.</li>
+                <li><strong>Сложность:</strong> Готовые наборы настроек для быстрой игры.</li>
+                <li><strong>Очки за попадание:</strong> Укажите фиксированное количество очков, диапазон или выберите случайное значение.</li>
+                <li><strong>Цвет целей:</strong> Вы можете выбрать один или несколько цветов для мишеней, включая свой собственный.</li>
+                <li><strong>Текст на цели:</strong> Добавьте любую надпись на мишени и выберите её цвет.</li>
+                <li><strong>Настройки фона:</strong> Персонализируйте игру, выбрав цвет фона или загрузив свое изображение.</li>
+                <li><strong>Гибкие настройки:</strong> Полный контроль над размером, количеством, скоростью появления, временем жизни и типом движения целей.</li>
+            </ul>
+            <button id="close-info-btn" class="btn">Закрыть</button>
+        </div>
+    </div>
+    
+    <script src="game.js" defer></script>
+
+</body>
+</html>
